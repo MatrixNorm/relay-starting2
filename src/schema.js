@@ -53,7 +53,7 @@ const Work = new GraphQLObjectType({
   }),
 });
 
-const WorkKind = enumType("WorkKind", [
+export const WorkKind = enumType("WorkKind", [
   "BALLET_SUITE",
   "OPERA",
   "PIANO_CONCERTO",
@@ -64,7 +64,7 @@ const WorkKind = enumType("WorkKind", [
   "SYMPHONY",
 ]);
 
-const Country = enumType("Country", [
+export const Country = enumType("Country", [
   "Austria",
   "France",
   "Italy",

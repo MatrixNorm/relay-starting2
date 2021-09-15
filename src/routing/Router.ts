@@ -22,7 +22,7 @@ export type RouteValue = {
 export type Router = {
   history: History;
   getValue: () => RouteValue;
-  preload: (pathname: string) => void;
+  preload: (location: Location) => void;
   subscribe: (observer: Observer) => Unsubscribe;
 };
 
@@ -39,11 +39,17 @@ type RouteTreeNode = {
   path?: string | undefined;
   exact?: boolean;
   component: any; // fuck typing
-  preload?: ((params: any) => { query: PreloadedQuery<any> }) | undefined;
+  preload?:
+    | ((params: any, location: Location) => { query: PreloadedQuery<any> })
+    | undefined;
   routes?: RouteTree | undefined;
 };
 
 export type RouteTree = RouteTreeNode[];
+
+function isTheSameLocation(loc1: Location, loc2: Location): boolean {
+  return loc1.pathname === loc2.pathname && loc1.search === loc2.search;
+}
 
 /**
  * A custom router built from the same primitives as react-router. Each object in `routes`
@@ -59,7 +65,7 @@ export function createRouter(
 
   // Find the initial match and preload it
   const initialMatches = matchRoute(routes, history.location);
-  const initialPreloadedMatches = preloadMatches$effect(initialMatches);
+  const initialPreloadedMatches = preloadMatches$effect(initialMatches, history.location);
 
   const __state: RouterInternalState = {
     currentValue: {
@@ -75,11 +81,11 @@ export function createRouter(
   // and notify subscribers. Note that this pattern ensures that data-loading
   // occurs *outside* of - and *before* - rendering.
   const cleanupFn = history.listen(({ location }) => {
-    if (location.pathname === __state.currentValue.location.pathname) {
+    if (isTheSameLocation(location, __state.currentValue.location)) {
       return;
     }
     const matches = matchRoute(routes, location);
-    const preloadedMatches = preloadMatches$effect(matches);
+    const preloadedMatches = preloadMatches$effect(matches, location);
 
     const nextEntry: RouteValue = {
       location,
@@ -95,10 +101,10 @@ export function createRouter(
     getValue() {
       return __state.currentValue;
     },
-    preload(pathname: string) {
+    preload(location: Location) {
       // preload data for a route, without storing the result
-      const matches = rrc.matchRoutes(routes, pathname);
-      preloadMatches$effect(matches);
+      const matches = rrc.matchRoutes(routes, location.pathname);
+      preloadMatches$effect(matches, location);
     },
     subscribe(observer: any) {
       const id = __state.nextId++;
@@ -129,11 +135,12 @@ function matchRoute(routes: RouteTree, location: Location) {
  * provided with params extracted from the route.
  */
 function preloadMatches$effect(
-  matches: rrc.MatchedRoute<{}, RouteTreeNode>[]
+  matches: rrc.MatchedRoute<{}, RouteTreeNode>[],
+  location: Location
 ): PreloadedMatch[] {
   return matches.map((match) => {
     const { route, match: matchData } = match;
-    const preloaded = route.preload ? route.preload(matchData.params) : null;
+    const preloaded = route.preload ? route.preload(matchData.params, location) : null;
     return { component: route.component, preloaded, routeData: matchData };
   });
 }

@@ -6,6 +6,7 @@ import HomeView from "./component/HomeView";
 import {
   ComposersBrowseView,
   InitialQuery as ComposersBrowseViewInitialQuery,
+  decode as ComposersBrowseViewDecodeArguments,
 } from "./component/ComposersBrowseView";
 import { ComposerView, Query as ComposerViewQuery } from "./component/ComposerView";
 import {
@@ -32,7 +33,9 @@ export const getRouteTree = (relayEnv: IEnvironment): RouteTree => [
       {
         path: "/composers",
         component: ComposersBrowseView,
-        preload: () => {
+        preload: (_, location) => {
+          const qArgs = new URLSearchParams(location.search);
+          console.log(ComposersBrowseViewDecodeArguments.country(qArgs.get("country")));
           return {
             query: loadQuery(relayEnv, ComposersBrowseViewInitialQuery, {
               country: null,

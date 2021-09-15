@@ -3,6 +3,7 @@ import { useState } from "react";
 import graphql from "babel-plugin-relay/macro";
 import { usePreloadedQuery, useQueryLoader, PreloadedQuery } from "react-relay/hooks";
 import ComposerSummary from "./ComposerSummary";
+import * as spec from "../schema";
 import type {
   ComposersBrowseViewQuery as $ComposersQuery,
   Country,
@@ -24,12 +25,14 @@ import type { Denull } from "../typeUtils";
   code from GraphQL schema. It will be inherently weak compared to Clojure
   Spec but it will suffice for validation of enum types like Country.
 */
-const decode = {
+export const decode = {
   country(externalValue: string): Country | undefined {
-    return (externalValue as Country) || undefined;
+    const validValues = spec.Country.getValues().map((v) => v.name);
+    return validValues.includes(externalValue) ? (externalValue as Country) : undefined;
   },
   workKind(externalValue: string): WorkKind | undefined {
-    return (externalValue as WorkKind) || undefined;
+    const validValues = spec.WorkKind.getValues().map((v) => v.name);
+    return validValues.includes(externalValue) ? (externalValue as WorkKind) : undefined;
   },
 };
 
