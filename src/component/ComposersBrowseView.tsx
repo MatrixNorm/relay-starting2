@@ -1,47 +1,25 @@
 import * as React from "react";
 import { useState } from "react";
 import graphql from "babel-plugin-relay/macro";
-import { usePreloadedQuery, useQueryLoader, PreloadedQuery } from "react-relay/hooks";
-import ComposerSummary from "./ComposerSummary";
+import { useFragment, usePreloadedQuery, PreloadedQuery } from "react-relay/hooks";
+import Link from "../routing/Link";
 import * as spec from "../schema";
 import type {
-  ComposersBrowseViewQuery as $ComposersQuery,
+  ComposersBrowseViewQuery as $Query,
+  ComposersBrowseViewQueryVariables as $QueryVars,
   Country,
   WorkKind,
 } from "__relay__/ComposersBrowseViewQuery.graphql";
 import type {
-  ComposersBrowseViewInitialQuery as $InitialQuery,
-  ComposersBrowseViewInitialQueryVariables as $InitialQueryVars,
-} from "__relay__/ComposersBrowseViewInitialQuery.graphql";
+  ComposersBrowseView_composers,
+  ComposersBrowseView_composers$key,
+} from "__relay__/ComposersBrowseView_composers.graphql";
 import type { Denull } from "../typeUtils";
 
-/*
-  Ideally single source of truth should be data specification
-  like Clojure Spec. GraphQL schema and all types can be derived from it.
-  `externalValue` comes from the user as a string and can be outside
-  of Country type. It is easy to do validation via data spec.
-  Say, we do not control GraphQL schema creation and thus do not have 
-  data spec. It is possible to create tool that will generate validation
-  code from GraphQL schema. It will be inherently weak compared to Clojure
-  Spec but it will suffice for validation of enum types like Country.
-*/
-export const decode = {
-  country(externalValue: string): Country | undefined {
-    const validValues = spec.Country.getValues().map((v) => v.name);
-    return validValues.includes(externalValue) ? (externalValue as Country) : undefined;
-  },
-  workKind(externalValue: string): WorkKind | undefined {
-    const validValues = spec.WorkKind.getValues().map((v) => v.name);
-    return validValues.includes(externalValue) ? (externalValue as WorkKind) : undefined;
-  },
-};
+type Composer = NonNullable<ComposersBrowseView_composers["composers"]>[number];
 
-const encode = (internalValue: Country | WorkKind | undefined): string => {
-  return internalValue || "";
-};
-
-export const InitialQuery = graphql`
-  query ComposersBrowseViewInitialQuery($country: Country, $workKind: WorkKind) {
+export const Query = graphql`
+  query ComposersBrowseViewQuery($country: Country, $workKind: WorkKind) {
     country: __type(name: "Country") {
       enumValues {
         name
@@ -52,27 +30,29 @@ export const InitialQuery = graphql`
         name
       }
     }
+    ...ComposersBrowseView_composers @arguments(country: $country, workKind: $workKind)
+  }
+`;
+
+const composersFragment = graphql`
+  fragment ComposersBrowseView_composers on Query
+  @argumentDefinitions(country: { type: "Country" }, workKind: { type: "WorkKind" }) {
     composers(country: $country) {
       id
-      ...ComposerSummary_composer @arguments(workKind: $workKind)
+      name
+      country
+      works(kind: $workKind) {
+        id
+        name
+        kind
+        yearOfPublication
+      }
     }
   }
 `;
 
-export const ComposersQuery = graphql`
-  query ComposersBrowseViewQuery($country: Country, $workKind: WorkKind) {
-    composers(country: $country) {
-      id
-      ...ComposerSummary_composer @arguments(workKind: $workKind)
-    }
-  }
-`;
-
-function ComposersList({
-  composers,
-}: {
-  composers: $ComposersQuery["response"]["composers"];
-}) {
+function ComposersList(props: { composers: ComposersBrowseView_composers$key }) {
+  const { composers } = useFragment(composersFragment, props.composers);
   return (
     <div>
       {composers
@@ -84,21 +64,32 @@ function ComposersList({
   );
 }
 
-function ComposersListWrapper(props: {
-  preloadedQuery: PreloadedQuery<$ComposersQuery>;
-}) {
-  const data = usePreloadedQuery(ComposersQuery, props.preloadedQuery);
-  return <ComposersList composers={data.composers} />;
+function ComposerSummary({ composer }: { composer: Composer }) {
+  const { works } = composer;
+  return (
+    <div>
+      <h4>
+        <Link to={`/composer/${composer.id}`}>{composer.name}</Link>{" "}
+        <i>{composer.country}</i>
+      </h4>
+      {works ? (
+        <ul>
+          {works.map((work) => (
+            <li key={work.id}>
+              <span>{work.name}</span>
+              <span> {work.kind}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div>This composer is a lazy bummer</div>
+      )}
+    </div>
+  );
 }
 
-export function Inner__(props: { initialPreloadedQuery: PreloadedQuery<$InitialQuery> }) {
-  const [composersQueryRef, reloadComposersQuery] =
-    useQueryLoader<$ComposersQuery>(ComposersQuery);
-
-  const { composers, country, workKind } = usePreloadedQuery(
-    InitialQuery,
-    props.initialPreloadedQuery
-  );
+export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
+  const data = usePreloadedQuery(Query, props.preloadedQuery);
   /*
     __type.enumValues is typed as string array. If introspection query is
     done correctly all these values are in fact of Country type. There is no need to
@@ -106,34 +97,25 @@ export function Inner__(props: { initialPreloadedQuery: PreloadedQuery<$InitialQ
     And to please Typescript it's ok to do type casting.
   */
   const selectors = {
-    country: (country?.enumValues || []).map((v) => v.name) as Country[],
-    workKind: (workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
+    country: (data.country?.enumValues || []).map((v) => v.name) as Country[],
+    workKind: (data.workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
   };
 
   const __initFn = () => {
-    const vs = props.initialPreloadedQuery.variables;
+    const vs = props.preloadedQuery.variables;
     return {
       country: vs.country || undefined,
       workKind: vs.workKind || undefined,
     };
   };
 
-  const [appliedSelectors, setAppliedSelectors] =
-    useState<Denull<$InitialQueryVars>>(__initFn);
+  const [appliedSelectors, setAppliedSelectors] = useState<Denull<$QueryVars>>(__initFn);
 
-  const [draftSelectors, setDraftSelectors] =
-    useState<Denull<$InitialQueryVars>>(__initFn);
+  const [draftSelectors, setDraftSelectors] = useState<Denull<$QueryVars>>(__initFn);
 
   function isDraftDiffers() {
     // Would be so much better with persistent data structures.
     return JSON.stringify(appliedSelectors) !== JSON.stringify(draftSelectors);
-  }
-
-  function handleApply() {
-    if (isDraftDiffers()) {
-      setAppliedSelectors(draftSelectors);
-      reloadComposersQuery(draftSelectors);
-    }
   }
 
   function handleCancel() {
@@ -142,7 +124,7 @@ export function Inner__(props: { initialPreloadedQuery: PreloadedQuery<$InitialQ
     }
   }
 
-  function selectorElement(name: keyof $InitialQueryVars) {
+  function selectorElement(name: keyof $QueryVars) {
     if (selectors[name].length > 0) {
       return (
         <select
@@ -175,26 +157,43 @@ export function Inner__(props: { initialPreloadedQuery: PreloadedQuery<$InitialQ
 
       {isDraftDiffers() && (
         <div>
-          <button onClick={handleApply}>apply</button>
+          <button>
+            <Link to={`/composers/?country=Russia`}>apply</Link>
+          </button>
           <button onClick={handleCancel}>cancel</button>
         </div>
       )}
 
-      {composersQueryRef ? (
-        <div>
-          <React.Suspense fallback={"Loading..."}>
-            <ComposersListWrapper preloadedQuery={composersQueryRef} />
-          </React.Suspense>
-        </div>
-      ) : (
-        <ComposersList composers={composers} />
-      )}
+      <div>
+        <React.Suspense fallback={"Loading..."}>
+          <ComposersList composers={data} />
+        </React.Suspense>
+      </div>
     </div>
   );
 }
 
-export function ComposersBrowseView(props: {
-  preloadedQuery: PreloadedQuery<$InitialQuery>;
-}) {
-  return <Inner__ initialPreloadedQuery={props.preloadedQuery} />;
-}
+/*
+  Ideally single source of truth should be data specification
+  like Clojure Spec. GraphQL schema and all types can be derived from it.
+  `externalValue` comes from the user as a string and can be outside
+  of Country type. It is easy to do validation via data spec.
+  Say, we do not control GraphQL schema creation and thus do not have 
+  data spec. It is possible to create tool that will generate validation
+  code from GraphQL schema. It will be inherently weak compared to Clojure
+  Spec but it will suffice for validation of enum types like Country.
+*/
+export const decode = {
+  country(externalValue: string): Country | undefined {
+    const validValues = spec.Country.getValues().map((v) => v.name);
+    return validValues.includes(externalValue) ? (externalValue as Country) : undefined;
+  },
+  workKind(externalValue: string): WorkKind | undefined {
+    const validValues = spec.WorkKind.getValues().map((v) => v.name);
+    return validValues.includes(externalValue) ? (externalValue as WorkKind) : undefined;
+  },
+};
+
+const encode = (internalValue: Country | WorkKind | undefined): string => {
+  return internalValue || "";
+};

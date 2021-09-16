@@ -3,11 +3,7 @@ import NotFound404 from "./component/NotFound404";
 import ThrowComponent from "./component/Throw";
 import Header from "./component/Header";
 import HomeView from "./component/HomeView";
-import {
-  ComposersBrowseView,
-  InitialQuery as ComposersBrowseViewInitialQuery,
-  decode as ComposersBrowseViewDecodeArguments,
-} from "./component/ComposersBrowseView";
+import * as ComposersBrowseView from "./component/ComposersBrowseView";
 import { ComposerView, Query as ComposerViewQuery } from "./component/ComposerView";
 import {
   ComposerViewDefault,
@@ -32,14 +28,15 @@ export const getRouteTree = (relayEnv: IEnvironment): RouteTree => [
       },
       {
         path: "/composers",
-        component: ComposersBrowseView,
+        component: ComposersBrowseView.Main,
         preload: (_, location) => {
-          const qArgs = new URLSearchParams(location.search);
-          console.log(ComposersBrowseViewDecodeArguments.country(qArgs.get("country")));
+          //@ts-ignore
+          const qArgs = Object.fromEntries(new URLSearchParams(location.search));
+          const { decode } = ComposersBrowseView;
           return {
-            query: loadQuery(relayEnv, ComposersBrowseViewInitialQuery, {
-              country: null,
-              workKind: null,
+            query: loadQuery(relayEnv, ComposersBrowseView.Query, {
+              country: decode.country(qArgs.country),
+              workKind: decode.workKind(qArgs.workKind),
             }),
           };
         },

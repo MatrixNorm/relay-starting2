@@ -11,10 +11,17 @@ export type ComposersBrowseViewQueryVariables = {
     workKind?: WorkKind | null;
 };
 export type ComposersBrowseViewQueryResponse = {
-    readonly composers: ReadonlyArray<{
-        readonly id: string;
-        readonly " $fragmentRefs": FragmentRefs<"ComposerSummary_composer">;
-    }> | null;
+    readonly country: {
+        readonly enumValues: ReadonlyArray<{
+            readonly name: string;
+        }> | null;
+    } | null;
+    readonly workKind: {
+        readonly enumValues: ReadonlyArray<{
+            readonly name: string;
+        }> | null;
+    } | null;
+    readonly " $fragmentRefs": FragmentRefs<"ComposersBrowseView_composers">;
 };
 export type ComposersBrowseViewQuery = {
     readonly response: ComposersBrowseViewQueryResponse;
@@ -28,21 +35,30 @@ query ComposersBrowseViewQuery(
   $country: Country
   $workKind: WorkKind
 ) {
-  composers(country: $country) {
-    id
-    ...ComposerSummary_composer_15hxLD
+  country: __type(name: "Country") {
+    enumValues {
+      name
+    }
   }
+  workKind: __type(name: "WorkKind") {
+    enumValues {
+      name
+    }
+  }
+  ...ComposersBrowseView_composers_2jCGwZ
 }
 
-fragment ComposerSummary_composer_15hxLD on Composer {
-  id
-  name
-  country
-  works(kind: $workKind) {
+fragment ComposersBrowseView_composers_2jCGwZ on Query {
+  composers(country: $country) {
     id
     name
-    kind
-    yearOfPublication
+    country
+    works(kind: $workKind) {
+      id
+      name
+      kind
+      yearOfPublication
+    }
   }
 }
 */
@@ -60,25 +76,69 @@ var v0 = [
     "name": "workKind"
   }
 ],
-v1 = [
-  {
-    "kind": "Variable",
-    "name": "country",
-    "variableName": "country"
-  }
-],
-v2 = {
-  "alias": null,
-  "args": null,
-  "kind": "ScalarField",
-  "name": "id",
-  "storageKey": null
-},
-v3 = {
+v1 = {
   "alias": null,
   "args": null,
   "kind": "ScalarField",
   "name": "name",
+  "storageKey": null
+},
+v2 = [
+  {
+    "alias": null,
+    "args": null,
+    "concreteType": "__EnumValue",
+    "kind": "LinkedField",
+    "name": "enumValues",
+    "plural": true,
+    "selections": [
+      (v1/*: any*/)
+    ],
+    "storageKey": null
+  }
+],
+v3 = {
+  "alias": "country",
+  "args": [
+    {
+      "kind": "Literal",
+      "name": "name",
+      "value": "Country"
+    }
+  ],
+  "concreteType": "__Type",
+  "kind": "LinkedField",
+  "name": "__type",
+  "plural": false,
+  "selections": (v2/*: any*/),
+  "storageKey": "__type(name:\"Country\")"
+},
+v4 = {
+  "alias": "workKind",
+  "args": [
+    {
+      "kind": "Literal",
+      "name": "name",
+      "value": "WorkKind"
+    }
+  ],
+  "concreteType": "__Type",
+  "kind": "LinkedField",
+  "name": "__type",
+  "plural": false,
+  "selections": (v2/*: any*/),
+  "storageKey": "__type(name:\"WorkKind\")"
+},
+v5 = {
+  "kind": "Variable",
+  "name": "country",
+  "variableName": "country"
+},
+v6 = {
+  "alias": null,
+  "args": null,
+  "kind": "ScalarField",
+  "name": "id",
   "storageKey": null
 };
 return {
@@ -88,28 +148,19 @@ return {
     "metadata": null,
     "name": "ComposersBrowseViewQuery",
     "selections": [
+      (v3/*: any*/),
+      (v4/*: any*/),
       {
-        "alias": null,
-        "args": (v1/*: any*/),
-        "concreteType": "Composer",
-        "kind": "LinkedField",
-        "name": "composers",
-        "plural": true,
-        "selections": [
-          (v2/*: any*/),
+        "args": [
+          (v5/*: any*/),
           {
-            "args": [
-              {
-                "kind": "Variable",
-                "name": "workKind",
-                "variableName": "workKind"
-              }
-            ],
-            "kind": "FragmentSpread",
-            "name": "ComposerSummary_composer"
+            "kind": "Variable",
+            "name": "workKind",
+            "variableName": "workKind"
           }
         ],
-        "storageKey": null
+        "kind": "FragmentSpread",
+        "name": "ComposersBrowseView_composers"
       }
     ],
     "type": "Query",
@@ -121,16 +172,20 @@ return {
     "kind": "Operation",
     "name": "ComposersBrowseViewQuery",
     "selections": [
+      (v3/*: any*/),
+      (v4/*: any*/),
       {
         "alias": null,
-        "args": (v1/*: any*/),
+        "args": [
+          (v5/*: any*/)
+        ],
         "concreteType": "Composer",
         "kind": "LinkedField",
         "name": "composers",
         "plural": true,
         "selections": [
-          (v2/*: any*/),
-          (v3/*: any*/),
+          (v6/*: any*/),
+          (v1/*: any*/),
           {
             "alias": null,
             "args": null,
@@ -152,8 +207,8 @@ return {
             "name": "works",
             "plural": true,
             "selections": [
-              (v2/*: any*/),
-              (v3/*: any*/),
+              (v6/*: any*/),
+              (v1/*: any*/),
               {
                 "alias": null,
                 "args": null,
@@ -177,14 +232,14 @@ return {
     ]
   },
   "params": {
-    "cacheID": "58d1264fcbbf195bda4cf5776f180e4b",
+    "cacheID": "0abe07e88b5546ebe8387ffd891ec2bd",
     "id": null,
     "metadata": {},
     "name": "ComposersBrowseViewQuery",
     "operationKind": "query",
-    "text": "query ComposersBrowseViewQuery(\n  $country: Country\n  $workKind: WorkKind\n) {\n  composers(country: $country) {\n    id\n    ...ComposerSummary_composer_15hxLD\n  }\n}\n\nfragment ComposerSummary_composer_15hxLD on Composer {\n  id\n  name\n  country\n  works(kind: $workKind) {\n    id\n    name\n    kind\n    yearOfPublication\n  }\n}\n"
+    "text": "query ComposersBrowseViewQuery(\n  $country: Country\n  $workKind: WorkKind\n) {\n  country: __type(name: \"Country\") {\n    enumValues {\n      name\n    }\n  }\n  workKind: __type(name: \"WorkKind\") {\n    enumValues {\n      name\n    }\n  }\n  ...ComposersBrowseView_composers_2jCGwZ\n}\n\nfragment ComposersBrowseView_composers_2jCGwZ on Query {\n  composers(country: $country) {\n    id\n    name\n    country\n    works(kind: $workKind) {\n      id\n      name\n      kind\n      yearOfPublication\n    }\n  }\n}\n"
   }
 };
 })();
-(node as any).hash = '812ad2dad79da193d609e2e7a30073ab';
+(node as any).hash = '8c9ffb82cf5e74f5025612217bbf8819';
 export default node;
