@@ -64,6 +64,7 @@ export function RouterRenderer() {
   // ```
 
   return routeValue.preloadedMatches.reduceRight<JSX.Element | null>((acc, match) => {
+    console.log(match);
     const comp = <RouteComponent {...match}>{acc}</RouteComponent>;
     return match.preloaded?.query ? (
       <React.Suspense fallback={"Loading..."}>{comp}</React.Suspense>

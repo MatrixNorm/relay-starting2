@@ -81,6 +81,7 @@ export function createRouter(
   // and notify subscribers. Note that this pattern ensures that data-loading
   // occurs *outside* of - and *before* - rendering.
   const cleanupFn = history.listen(({ location }) => {
+    console.log(location, __state.currentValue.location);
     if (isTheSameLocation(location, __state.currentValue.location)) {
       return;
     }

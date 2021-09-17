@@ -17,6 +17,7 @@ export default function Link(props: Props) {
   // When the user clicks, change route
   const changeRoute = useCallback(
     (event) => {
+      console.log(props.to);
       event.preventDefault();
       router.history.push(props.to);
     },

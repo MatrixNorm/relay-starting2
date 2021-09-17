@@ -9,3 +9,8 @@ export function isNil(x: any): boolean {
 export function sleepPromise(timeout: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
+
+export function removeUndefinedValues<T>(obj: T): T {
+  // @ts-ignore
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined));
+}

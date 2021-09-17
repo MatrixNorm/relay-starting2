@@ -3,6 +3,7 @@ import { useState } from "react";
 import graphql from "babel-plugin-relay/macro";
 import { useFragment, usePreloadedQuery, PreloadedQuery } from "react-relay/hooks";
 import Link from "../routing/Link";
+import * as utils from "../utils";
 import * as spec from "../schema";
 import type {
   ComposersBrowseViewQuery as $Query,
@@ -14,6 +15,7 @@ import type {
   ComposersBrowseView_composers,
   ComposersBrowseView_composers$key,
 } from "__relay__/ComposersBrowseView_composers.graphql";
+import type { PreloadedMatch } from "../routing/Router";
 import type { Denull } from "../typeUtils";
 
 type Composer = NonNullable<ComposersBrowseView_composers["composers"]>[number];
@@ -88,7 +90,10 @@ function ComposerSummary({ composer }: { composer: Composer }) {
   );
 }
 
-export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
+export function Main(props: {
+  preloadedQuery: PreloadedQuery<$Query>;
+  routeData: PreloadedMatch["routeData"];
+}) {
   const data = usePreloadedQuery(Query, props.preloadedQuery);
   /*
     __type.enumValues is typed as string array. If introspection query is
@@ -96,22 +101,21 @@ export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
     do decoding in runtime - more appropriate is to write single unit test.
     And to please Typescript it's ok to do type casting.
   */
-  const selectors = {
+  const selectorDomains = {
     country: (data.country?.enumValues || []).map((v) => v.name) as Country[],
     workKind: (data.workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
   };
 
-  const __initFn = () => {
+  const appliedSelectors = (() => {
     const vs = props.preloadedQuery.variables;
     return {
       country: vs.country || undefined,
       workKind: vs.workKind || undefined,
     };
-  };
+  })();
 
-  const [appliedSelectors, setAppliedSelectors] = useState<Denull<$QueryVars>>(__initFn);
-
-  const [draftSelectors, setDraftSelectors] = useState<Denull<$QueryVars>>(__initFn);
+  const [draftSelectors, setDraftSelectors] =
+    useState<Denull<$QueryVars>>(appliedSelectors);
 
   function isDraftDiffers() {
     // Would be so much better with persistent data structures.
@@ -125,7 +129,8 @@ export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
   }
 
   function selectorElement(name: keyof $QueryVars) {
-    if (selectors[name].length > 0) {
+    // typing here SUCKs big time
+    if (selectorDomains[name].length > 0) {
       return (
         <select
           value={encode(draftSelectors[name])}
@@ -138,7 +143,7 @@ export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
           test-id={`App-${name}-selector`}
         >
           <option value=""></option>
-          {selectors[name].map((name, j) => (
+          {selectorDomains[name].map((name, j) => (
             <option value={name} key={j}>
               {name}
             </option>
@@ -158,7 +163,13 @@ export function Main(props: { preloadedQuery: PreloadedQuery<$Query> }) {
       {isDraftDiffers() && (
         <div>
           <button>
-            <Link to={`/composers/?country=Russia`}>apply</Link>
+            <Link
+              to={`${props.routeData.path}?${new URLSearchParams(
+                utils.removeUndefinedValues(draftSelectors)
+              ).toString()}`}
+            >
+              apply
+            </Link>
           </button>
           <button onClick={handleCancel}>cancel</button>
         </div>
