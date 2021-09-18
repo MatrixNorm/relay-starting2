@@ -16,7 +16,6 @@ import type {
   ComposersBrowseView_composers$key,
 } from "__relay__/ComposersBrowseView_composers.graphql";
 import type { PreloadedMatch } from "../routing/Router";
-import type { Denull } from "../typeUtils";
 
 type Composer = NonNullable<ComposersBrowseView_composers["composers"]>[number];
 
@@ -106,16 +105,15 @@ export function Main(props: {
     workKind: (data.workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
   };
 
-  const appliedSelectors = (() => {
-    const vs = props.preloadedQuery.variables;
-    return {
-      country: vs.country || undefined,
-      workKind: vs.workKind || undefined,
-    };
-  })();
+  const [appliedSelectors, setAppliedSelectors] = useState<$QueryVars>(
+    props.preloadedQuery.variables
+  );
+  const [draftSelectors, setDraftSelectors] = useState<$QueryVars>(appliedSelectors);
 
-  const [draftSelectors, setDraftSelectors] =
-    useState<Denull<$QueryVars>>(appliedSelectors);
+  if (props.preloadedQuery.variables !== appliedSelectors) {
+    setAppliedSelectors(props.preloadedQuery.variables);
+    setDraftSelectors(props.preloadedQuery.variables);
+  }
 
   function isDraftDiffers() {
     // Would be so much better with persistent data structures.
@@ -165,7 +163,7 @@ export function Main(props: {
           <button>
             <Link
               to={`${props.routeData.path}?${new URLSearchParams(
-                utils.removeUndefinedValues(draftSelectors)
+                utils.removeNullAndUndefine(draftSelectors)
               ).toString()}`}
             >
               apply
@@ -205,6 +203,6 @@ export const decode = {
   },
 };
 
-const encode = (internalValue: Country | WorkKind | undefined): string => {
+const encode = (internalValue: Country | WorkKind | null | undefined): string => {
   return internalValue || "";
 };

@@ -17,9 +17,11 @@ export default function Link(props: Props) {
   // When the user clicks, change route
   const changeRoute = useCallback(
     (event) => {
-      console.log(props.to);
       event.preventDefault();
-      router.history.push(props.to);
+      // Walk-around this bug or feature
+      // https://github.com/remix-run/history/issues/859
+      const url = new URL(props.to, "https://lmao.kek");
+      router.history.push({ pathname: url.pathname, search: url.search });
     },
     [props.to, router]
   );

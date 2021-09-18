@@ -1,3 +1,5 @@
+import * as h from "history";
+
 describe("****", () => {
   test("t_1", () => {
     const p1 = Promise.resolve(1);
@@ -32,5 +34,19 @@ describe("****", () => {
     });
 
     console.log("B");
+  });
+
+  test("t_h1 history bug", () => {
+    const history = h.createMemoryHistory();
+    history.push("/composers?country=Russia");
+    history.push("/composers");
+    expect(history.location.search).toEqual("");
+  });
+
+  test("t_h2 history bug walk-around", () => {
+    const history = h.createMemoryHistory();
+    history.push("/composers?country=Russia");
+    history.push({ pathname: "/composers", search: "" });
+    expect(history.location.search).toEqual("");
   });
 });
