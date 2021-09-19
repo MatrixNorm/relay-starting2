@@ -127,11 +127,14 @@ export function Main(props: {
   }
 
   function selectorElement(name: keyof $QueryVars) {
-    // typing here SUCKs big time
+    // wow typing here sucks big time
+    // but it's Typescript' fault
     if (selectorDomains[name].length > 0) {
       return (
         <select
-          value={encode(draftSelectors[name])}
+          //@ts-ignore
+          //https://github.com/microsoft/TypeScript/issues/30581
+          value={encode[name](draftSelectors[name])}
           onChange={(evt) => {
             // observe how useless is type information here
             let decoder = decode[name];
@@ -203,6 +206,11 @@ export const decode = {
   },
 };
 
-const encode = (internalValue: Country | WorkKind | null | undefined): string => {
-  return internalValue || "";
+const encode = {
+  country(internalValue: Country | null | undefined): string {
+    return internalValue || "";
+  },
+  workKind(internalValue: WorkKind | null | undefined): string {
+    return internalValue || "";
+  },
 };
