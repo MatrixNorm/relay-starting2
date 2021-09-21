@@ -1,10 +1,12 @@
 import * as React from "react";
 import { useState } from "react";
 import graphql from "babel-plugin-relay/macro";
-import { useFragment, usePreloadedQuery, PreloadedQuery } from "react-relay/hooks";
+import { useFragment, usePreloadedQuery } from "react-relay/hooks";
 import Link from "../routing/Link";
 import * as utils from "../utils";
 import * as spec from "../schema";
+import type { PreloadedQuery } from "react-relay/hooks";
+import type { GraphQLEnumType } from "graphql";
 import type {
   ComposersBrowseViewQuery as $Query,
   ComposersBrowseViewQueryVariables as $QueryVars,
@@ -132,9 +134,7 @@ export function Main(props: {
     if (selectorDomains[name].length > 0) {
       return (
         <select
-          //@ts-ignore
-          //https://github.com/microsoft/TypeScript/issues/30581
-          value={encode[name](draftSelectors[name])}
+          value={draftSelectors[name] || ""}
           onChange={(evt) => {
             // observe how useless is type information here
             let decoder = decode[name];
@@ -186,31 +186,17 @@ export function Main(props: {
 }
 
 /*
-  Ideally single source of truth should be data specification
-  like Clojure Spec. GraphQL schema and all types can be derived from it.
-  `externalValue` comes from the user as a string and can be outside
-  of Country type. It is easy to do validation via data spec.
-  Say, we do not control GraphQL schema creation and thus do not have 
-  data spec. It is possible to create tool that will generate validation
-  code from GraphQL schema. It will be inherently weak compared to Clojure
-  Spec but it will suffice for validation of enum types like Country.
+  Decoding should be part of spec solution like io-ts, yup, zod, malli.
 */
-export const decode = {
-  country(externalValue: string): Country | undefined {
-    const validValues = spec.Country.getValues().map((v) => v.name);
-    return validValues.includes(externalValue) ? (externalValue as Country) : undefined;
-  },
-  workKind(externalValue: string): WorkKind | undefined {
-    const validValues = spec.WorkKind.getValues().map((v) => v.name);
-    return validValues.includes(externalValue) ? (externalValue as WorkKind) : undefined;
-  },
-};
 
-const encode = {
-  country(internalValue: Country | null | undefined): string {
-    return internalValue || "";
-  },
-  workKind(internalValue: WorkKind | null | undefined): string {
-    return internalValue || "";
-  },
+const decodeStringAsEnum =
+  <T extends unknown>(enumType: GraphQLEnumType) =>
+  (externalValue: string): T | undefined => {
+    const validValues = enumType.getValues().map((v) => v.name);
+    return validValues.includes(externalValue) ? (externalValue as T) : undefined;
+  };
+
+export const decode = {
+  country: decodeStringAsEnum<Country>(spec.Country),
+  workKind: decodeStringAsEnum<WorkKind>(spec.WorkKind),
 };
