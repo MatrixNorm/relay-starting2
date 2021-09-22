@@ -49,11 +49,11 @@ query ComposersBrowseViewQuery(
 }
 
 fragment ComposersBrowseView_composers_2jCGwZ on Query {
-  composers(country: $country) {
+  composers(country: $country, workKind: $workKind) {
     id
     name
     country
-    works(kind: $workKind) {
+    works {
       id
       name
       kind
@@ -129,11 +129,18 @@ v4 = {
   "selections": (v2/*: any*/),
   "storageKey": "__type(name:\"WorkKind\")"
 },
-v5 = {
-  "kind": "Variable",
-  "name": "country",
-  "variableName": "country"
-},
+v5 = [
+  {
+    "kind": "Variable",
+    "name": "country",
+    "variableName": "country"
+  },
+  {
+    "kind": "Variable",
+    "name": "workKind",
+    "variableName": "workKind"
+  }
+],
 v6 = {
   "alias": null,
   "args": null,
@@ -151,14 +158,7 @@ return {
       (v3/*: any*/),
       (v4/*: any*/),
       {
-        "args": [
-          (v5/*: any*/),
-          {
-            "kind": "Variable",
-            "name": "workKind",
-            "variableName": "workKind"
-          }
-        ],
+        "args": (v5/*: any*/),
         "kind": "FragmentSpread",
         "name": "ComposersBrowseView_composers"
       }
@@ -176,9 +176,7 @@ return {
       (v4/*: any*/),
       {
         "alias": null,
-        "args": [
-          (v5/*: any*/)
-        ],
+        "args": (v5/*: any*/),
         "concreteType": "Composer",
         "kind": "LinkedField",
         "name": "composers",
@@ -195,13 +193,7 @@ return {
           },
           {
             "alias": null,
-            "args": [
-              {
-                "kind": "Variable",
-                "name": "kind",
-                "variableName": "workKind"
-              }
-            ],
+            "args": null,
             "concreteType": "Work",
             "kind": "LinkedField",
             "name": "works",
@@ -232,12 +224,12 @@ return {
     ]
   },
   "params": {
-    "cacheID": "0abe07e88b5546ebe8387ffd891ec2bd",
+    "cacheID": "dd1cf595519caa6b3a2002c860bdd6a7",
     "id": null,
     "metadata": {},
     "name": "ComposersBrowseViewQuery",
     "operationKind": "query",
-    "text": "query ComposersBrowseViewQuery(\n  $country: Country\n  $workKind: WorkKind\n) {\n  country: __type(name: \"Country\") {\n    enumValues {\n      name\n    }\n  }\n  workKind: __type(name: \"WorkKind\") {\n    enumValues {\n      name\n    }\n  }\n  ...ComposersBrowseView_composers_2jCGwZ\n}\n\nfragment ComposersBrowseView_composers_2jCGwZ on Query {\n  composers(country: $country) {\n    id\n    name\n    country\n    works(kind: $workKind) {\n      id\n      name\n      kind\n      yearOfPublication\n    }\n  }\n}\n"
+    "text": "query ComposersBrowseViewQuery(\n  $country: Country\n  $workKind: WorkKind\n) {\n  country: __type(name: \"Country\") {\n    enumValues {\n      name\n    }\n  }\n  workKind: __type(name: \"WorkKind\") {\n    enumValues {\n      name\n    }\n  }\n  ...ComposersBrowseView_composers_2jCGwZ\n}\n\nfragment ComposersBrowseView_composers_2jCGwZ on Query {\n  composers(country: $country, workKind: $workKind) {\n    id\n    name\n    country\n    works {\n      id\n      name\n      kind\n      yearOfPublication\n    }\n  }\n}\n"
   }
 };
 })();

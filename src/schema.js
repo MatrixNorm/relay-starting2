@@ -76,7 +76,7 @@ export const Country = enumType("Country", [
 const queryFields = {
   composers: {
     type: new GraphQLList(new GraphQLNonNull(Composer)),
-    args: { country: { type: Country } },
+    args: { country: { type: Country }, workKind: { type: WorkKind } },
   },
   composerById: {
     type: Composer,

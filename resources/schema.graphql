@@ -1,5 +1,5 @@
 type Query {
-  composers(country: Country): [Composer!]
+  composers(country: Country, workKind: WorkKind): [Composer!]
   composerById(composerId: ID!): Composer
   __schema: __Schema!
   __type(name: String!): __Type

@@ -42,7 +42,8 @@ const mockedSchema = addMocksToSchema({
         }
         return store.get("Composer", composerId);
       },
-      composers: (_, { country }) => {
+      composers: (_, { country, workKind }) => {
+        console.log({ country, workKind });
         // IF gql request has variables like {} (that is
         // 'country' key is missing) then here 'country'
         // will have value of 'undefined'. But if variables
@@ -61,11 +62,21 @@ const mockedSchema = addMocksToSchema({
           }
         }
 
+        if (!ut.isNil(workKind)) {
+          for (let ref of composerRefs) {
+            const workRefs: any = store.get("Composer", ref.$ref.key, "works");
+            for (let wRef of workRefs) {
+              store.set("Work", wRef.$ref.key, "kind", workKind);
+            }
+          }
+        }
+
         return composerRefs;
       },
     },
     Composer: {
       works: (composer, { kind }) => {
+        console.log({ kind });
         const workRefs: any = store.get(
           "Composer",
           composer.$ref.key,

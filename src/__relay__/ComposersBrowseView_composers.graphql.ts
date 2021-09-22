@@ -67,6 +67,11 @@ return {
           "kind": "Variable",
           "name": "country",
           "variableName": "country"
+        },
+        {
+          "kind": "Variable",
+          "name": "workKind",
+          "variableName": "workKind"
         }
       ],
       "concreteType": "Composer",
@@ -85,13 +90,7 @@ return {
         },
         {
           "alias": null,
-          "args": [
-            {
-              "kind": "Variable",
-              "name": "kind",
-              "variableName": "workKind"
-            }
-          ],
+          "args": null,
           "concreteType": "Work",
           "kind": "LinkedField",
           "name": "works",
@@ -124,5 +123,5 @@ return {
   "abstractKey": null
 };
 })();
-(node as any).hash = 'a42965b03c945800be83c2f5b283d72d';
+(node as any).hash = '900e12d3cd865a3cb0bc76a326c6cd4a';
 export default node;

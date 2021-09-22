@@ -18,3 +18,7 @@ export function removeNullAndUndefine<T>(obj: T): Denull<T> {
     Object.entries(obj).filter(([_, v]) => v !== undefined && v !== null)
   );
 }
+
+export function isEqualByValue(objX, objY) {
+  return JSON.stringify(objX) === JSON.stringify(objY);
+}

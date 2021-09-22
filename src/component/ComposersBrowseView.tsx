@@ -40,11 +40,11 @@ export const Query = graphql`
 const composersFragment = graphql`
   fragment ComposersBrowseView_composers on Query
   @argumentDefinitions(country: { type: "Country" }, workKind: { type: "WorkKind" }) {
-    composers(country: $country) {
+    composers(country: $country, workKind: $workKind) {
       id
       name
       country
-      works(kind: $workKind) {
+      works {
         id
         name
         kind
@@ -112,14 +112,14 @@ export function Main(props: {
   );
   const [draftSelectors, setDraftSelectors] = useState<$QueryVars>(appliedSelectors);
 
-  if (props.preloadedQuery.variables !== appliedSelectors) {
+  if (!utils.isEqualByValue(props.preloadedQuery.variables, appliedSelectors)) {
     setAppliedSelectors(props.preloadedQuery.variables);
     setDraftSelectors(props.preloadedQuery.variables);
   }
 
   function isDraftDiffers() {
     // Would be so much better with persistent data structures.
-    return JSON.stringify(appliedSelectors) !== JSON.stringify(draftSelectors);
+    return !utils.isEqualByValue(appliedSelectors, draftSelectors);
   }
 
   function handleCancel() {
