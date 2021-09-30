@@ -6,9 +6,13 @@ import { ConcreteRequest } from "relay-runtime";
 import { FragmentRefs } from "relay-runtime";
 export type Country = "Austria" | "France" | "Germany" | "Italy" | "Poland" | "Russia" | "%future added value";
 export type WorkKind = "BALLET_SUITE" | "OPERA" | "PIANO_CONCERTO" | "PIANO_ETUDE" | "PIANO_PRELUDE" | "PIANO_SONATA" | "STRING_QUARTET" | "SYMPHONY" | "%future added value";
-export type ComposersBrowseViewQueryVariables = {
+export type ComposerWindowPaginationPageInput = {
     country?: Country | null;
     workKind?: WorkKind | null;
+    pageNumber?: number | null;
+};
+export type ComposersBrowseViewQueryVariables = {
+    input?: ComposerWindowPaginationPageInput | null;
 };
 export type ComposersBrowseViewQueryResponse = {
     readonly country: {
@@ -32,8 +36,7 @@ export type ComposersBrowseViewQuery = {
 
 /*
 query ComposersBrowseViewQuery(
-  $country: Country
-  $workKind: WorkKind
+  $input: ComposerWindowPaginationPageInput
 ) {
   country: __type(name: "Country") {
     enumValues {
@@ -45,19 +48,23 @@ query ComposersBrowseViewQuery(
       name
     }
   }
-  ...ComposersBrowseView_composers_2jCGwZ
+  ...ComposersBrowseView_composers_2VV6jB
 }
 
-fragment ComposersBrowseView_composers_2jCGwZ on Query {
-  composers(country: $country, workKind: $workKind) {
-    id
-    name
-    country
-    works {
+fragment ComposersBrowseView_composers_2VV6jB on Query {
+  composerWindowPagination(input: $input) {
+    pageNumber
+    pageMaxNumber
+    items {
       id
       name
-      kind
-      yearOfPublication
+      country
+      works {
+        id
+        name
+        kind
+        yearOfPublication
+      }
     }
   }
 }
@@ -68,12 +75,7 @@ var v0 = [
   {
     "defaultValue": null,
     "kind": "LocalArgument",
-    "name": "country"
-  },
-  {
-    "defaultValue": null,
-    "kind": "LocalArgument",
-    "name": "workKind"
+    "name": "input"
   }
 ],
 v1 = {
@@ -132,13 +134,8 @@ v4 = {
 v5 = [
   {
     "kind": "Variable",
-    "name": "country",
-    "variableName": "country"
-  },
-  {
-    "kind": "Variable",
-    "name": "workKind",
-    "variableName": "workKind"
+    "name": "input",
+    "variableName": "input"
   }
 ],
 v6 = {
@@ -177,26 +174,31 @@ return {
       {
         "alias": null,
         "args": (v5/*: any*/),
-        "concreteType": "Composer",
+        "concreteType": "ComposerWindowPaginationPage",
         "kind": "LinkedField",
-        "name": "composers",
-        "plural": true,
+        "name": "composerWindowPagination",
+        "plural": false,
         "selections": [
-          (v6/*: any*/),
-          (v1/*: any*/),
           {
             "alias": null,
             "args": null,
             "kind": "ScalarField",
-            "name": "country",
+            "name": "pageNumber",
             "storageKey": null
           },
           {
             "alias": null,
             "args": null,
-            "concreteType": "Work",
+            "kind": "ScalarField",
+            "name": "pageMaxNumber",
+            "storageKey": null
+          },
+          {
+            "alias": null,
+            "args": null,
+            "concreteType": "Composer",
             "kind": "LinkedField",
-            "name": "works",
+            "name": "items",
             "plural": true,
             "selections": [
               (v6/*: any*/),
@@ -205,14 +207,34 @@ return {
                 "alias": null,
                 "args": null,
                 "kind": "ScalarField",
-                "name": "kind",
+                "name": "country",
                 "storageKey": null
               },
               {
                 "alias": null,
                 "args": null,
-                "kind": "ScalarField",
-                "name": "yearOfPublication",
+                "concreteType": "Work",
+                "kind": "LinkedField",
+                "name": "works",
+                "plural": true,
+                "selections": [
+                  (v6/*: any*/),
+                  (v1/*: any*/),
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "kind",
+                    "storageKey": null
+                  },
+                  {
+                    "alias": null,
+                    "args": null,
+                    "kind": "ScalarField",
+                    "name": "yearOfPublication",
+                    "storageKey": null
+                  }
+                ],
                 "storageKey": null
               }
             ],
@@ -224,14 +246,14 @@ return {
     ]
   },
   "params": {
-    "cacheID": "dd1cf595519caa6b3a2002c860bdd6a7",
+    "cacheID": "d2be496c7cada25f1bddb3e0757af797",
     "id": null,
     "metadata": {},
     "name": "ComposersBrowseViewQuery",
     "operationKind": "query",
-    "text": "query ComposersBrowseViewQuery(\n  $country: Country\n  $workKind: WorkKind\n) {\n  country: __type(name: \"Country\") {\n    enumValues {\n      name\n    }\n  }\n  workKind: __type(name: \"WorkKind\") {\n    enumValues {\n      name\n    }\n  }\n  ...ComposersBrowseView_composers_2jCGwZ\n}\n\nfragment ComposersBrowseView_composers_2jCGwZ on Query {\n  composers(country: $country, workKind: $workKind) {\n    id\n    name\n    country\n    works {\n      id\n      name\n      kind\n      yearOfPublication\n    }\n  }\n}\n"
+    "text": "query ComposersBrowseViewQuery(\n  $input: ComposerWindowPaginationPageInput\n) {\n  country: __type(name: \"Country\") {\n    enumValues {\n      name\n    }\n  }\n  workKind: __type(name: \"WorkKind\") {\n    enumValues {\n      name\n    }\n  }\n  ...ComposersBrowseView_composers_2VV6jB\n}\n\nfragment ComposersBrowseView_composers_2VV6jB on Query {\n  composerWindowPagination(input: $input) {\n    pageNumber\n    pageMaxNumber\n    items {\n      id\n      name\n      country\n      works {\n        id\n        name\n        kind\n        yearOfPublication\n      }\n    }\n  }\n}\n"
   }
 };
 })();
-(node as any).hash = '8c9ffb82cf5e74f5025612217bbf8819';
+(node as any).hash = '5c3adb3881681ca4d4b2ebc32b21bcdf';
 export default node;

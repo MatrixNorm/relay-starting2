@@ -4,6 +4,10 @@ export function isFunction(obj: any): boolean {
   return !!(obj && obj.constructor && obj.call && obj.apply);
 }
 
+export function isObject(value: unknown): value is { [key: string]: any } {
+  return typeof value === "object" && !Array.isArray(value) && value !== null;
+}
+
 export function isNil(x: any): boolean {
   return x === undefined || x === null;
 }
@@ -19,6 +23,6 @@ export function removeNullAndUndefine<T>(obj: T): Denull<T> {
   );
 }
 
-export function isEqualByValue(objX, objY) {
+export function isEqualByValue(objX: any, objY: any) {
   return JSON.stringify(objX) === JSON.stringify(objY);
 }

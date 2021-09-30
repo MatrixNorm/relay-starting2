@@ -32,12 +32,13 @@ export const getRouteTree = (relayEnv: IEnvironment): RouteTree => [
         preload: (_, location) => {
           //@ts-ignore
           const qArgs = Object.fromEntries(new URLSearchParams(location.search));
-          const { decode } = ComposersBrowseView;
+          const decode = ComposersBrowseView.decodeComposerWindowPaginationPageInput;
           return {
-            query: loadQuery(relayEnv, ComposersBrowseView.Query, {
-              country: decode.country(qArgs.country),
-              workKind: decode.workKind(qArgs.workKind),
-            }),
+            query: loadQuery<ComposersBrowseView.$Query>(
+              relayEnv,
+              ComposersBrowseView.Query,
+              { input: decode(qArgs) }
+            ),
           };
         },
       },

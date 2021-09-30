@@ -7,17 +7,21 @@ import { FragmentRefs } from "relay-runtime";
 export type Country = "Austria" | "France" | "Germany" | "Italy" | "Poland" | "Russia" | "%future added value";
 export type WorkKind = "BALLET_SUITE" | "OPERA" | "PIANO_CONCERTO" | "PIANO_ETUDE" | "PIANO_PRELUDE" | "PIANO_SONATA" | "STRING_QUARTET" | "SYMPHONY" | "%future added value";
 export type ComposersBrowseView_composers = {
-    readonly composers: ReadonlyArray<{
-        readonly id: string;
-        readonly name: string;
-        readonly country: Country | null;
-        readonly works: ReadonlyArray<{
+    readonly composerWindowPagination: {
+        readonly pageNumber: number;
+        readonly pageMaxNumber: number;
+        readonly items: ReadonlyArray<{
             readonly id: string;
             readonly name: string;
-            readonly kind: WorkKind | null;
-            readonly yearOfPublication: number | null;
+            readonly country: Country | null;
+            readonly works: ReadonlyArray<{
+                readonly id: string;
+                readonly name: string;
+                readonly kind: WorkKind | null;
+                readonly yearOfPublication: number | null;
+            }> | null;
         }> | null;
-    }> | null;
+    } | null;
     readonly " $refType": "ComposersBrowseView_composers";
 };
 export type ComposersBrowseView_composers$data = ComposersBrowseView_composers;
@@ -48,12 +52,7 @@ return {
     {
       "defaultValue": null,
       "kind": "LocalArgument",
-      "name": "country"
-    },
-    {
-      "defaultValue": null,
-      "kind": "LocalArgument",
-      "name": "workKind"
+      "name": "input"
     }
   ],
   "kind": "Fragment",
@@ -65,35 +64,35 @@ return {
       "args": [
         {
           "kind": "Variable",
-          "name": "country",
-          "variableName": "country"
-        },
-        {
-          "kind": "Variable",
-          "name": "workKind",
-          "variableName": "workKind"
+          "name": "input",
+          "variableName": "input"
         }
       ],
-      "concreteType": "Composer",
+      "concreteType": "ComposerWindowPaginationPage",
       "kind": "LinkedField",
-      "name": "composers",
-      "plural": true,
+      "name": "composerWindowPagination",
+      "plural": false,
       "selections": [
-        (v0/*: any*/),
-        (v1/*: any*/),
         {
           "alias": null,
           "args": null,
           "kind": "ScalarField",
-          "name": "country",
+          "name": "pageNumber",
           "storageKey": null
         },
         {
           "alias": null,
           "args": null,
-          "concreteType": "Work",
+          "kind": "ScalarField",
+          "name": "pageMaxNumber",
+          "storageKey": null
+        },
+        {
+          "alias": null,
+          "args": null,
+          "concreteType": "Composer",
           "kind": "LinkedField",
-          "name": "works",
+          "name": "items",
           "plural": true,
           "selections": [
             (v0/*: any*/),
@@ -102,14 +101,34 @@ return {
               "alias": null,
               "args": null,
               "kind": "ScalarField",
-              "name": "kind",
+              "name": "country",
               "storageKey": null
             },
             {
               "alias": null,
               "args": null,
-              "kind": "ScalarField",
-              "name": "yearOfPublication",
+              "concreteType": "Work",
+              "kind": "LinkedField",
+              "name": "works",
+              "plural": true,
+              "selections": [
+                (v0/*: any*/),
+                (v1/*: any*/),
+                {
+                  "alias": null,
+                  "args": null,
+                  "kind": "ScalarField",
+                  "name": "kind",
+                  "storageKey": null
+                },
+                {
+                  "alias": null,
+                  "args": null,
+                  "kind": "ScalarField",
+                  "name": "yearOfPublication",
+                  "storageKey": null
+                }
+              ],
               "storageKey": null
             }
           ],
@@ -123,5 +142,5 @@ return {
   "abstractKey": null
 };
 })();
-(node as any).hash = '900e12d3cd865a3cb0bc76a326c6cd4a';
+(node as any).hash = '2b4534f5c7eed3df9a8a20949cc543d9';
 export default node;

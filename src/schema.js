@@ -1,6 +1,7 @@
 import {
   GraphQLEnumType,
   GraphQLID,
+  GraphQLInputObjectType,
   GraphQLInt,
   GraphQLInterfaceType,
   GraphQLList,
@@ -73,10 +74,30 @@ export const Country = enumType("Country", [
   "Russia",
 ]);
 
+const ComposerWindowPaginationPage = new GraphQLObjectType({
+  name: "ComposerWindowPaginationPage",
+  fields: () => ({
+    pageNumber: { type: new GraphQLNonNull(GraphQLInt) },
+    pageMaxNumber: { type: new GraphQLNonNull(GraphQLInt) },
+    items: { type: new GraphQLList(new GraphQLNonNull(Composer)) },
+  }),
+});
+
+const ComposerWindowPaginationPageInput = new GraphQLInputObjectType({
+  name: "ComposerWindowPaginationPageInput",
+  fields: () => ({
+    country: { type: Country },
+    workKind: { type: WorkKind },
+    pageNumber: { type: GraphQLInt },
+  }),
+});
+
 const queryFields = {
-  composers: {
-    type: new GraphQLList(new GraphQLNonNull(Composer)),
-    args: { country: { type: Country }, workKind: { type: WorkKind } },
+  composerWindowPagination: {
+    type: ComposerWindowPaginationPage,
+    args: {
+      input: { type: ComposerWindowPaginationPageInput },
+    },
   },
   composerById: {
     type: Composer,

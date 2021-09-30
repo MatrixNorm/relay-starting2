@@ -12,6 +12,7 @@ import type {
   ComposersBrowseViewQueryVariables as $QueryVars,
   Country,
   WorkKind,
+  ComposerWindowPaginationPageInput,
 } from "__relay__/ComposersBrowseViewQuery.graphql";
 import type {
   ComposersBrowseView_composers,
@@ -21,8 +22,10 @@ import type { PreloadedMatch } from "../routing/Router";
 
 type Composer = NonNullable<ComposersBrowseView_composers["composers"]>[number];
 
+export { $Query };
+
 export const Query = graphql`
-  query ComposersBrowseViewQuery($country: Country, $workKind: WorkKind) {
+  query ComposersBrowseViewQuery($input: ComposerWindowPaginationPageInput) {
     country: __type(name: "Country") {
       enumValues {
         name
@@ -33,22 +36,26 @@ export const Query = graphql`
         name
       }
     }
-    ...ComposersBrowseView_composers @arguments(country: $country, workKind: $workKind)
+    ...ComposersBrowseView_composers @arguments(input: $input)
   }
 `;
 
 const composersFragment = graphql`
   fragment ComposersBrowseView_composers on Query
-  @argumentDefinitions(country: { type: "Country" }, workKind: { type: "WorkKind" }) {
-    composers(country: $country, workKind: $workKind) {
-      id
-      name
-      country
-      works {
+  @argumentDefinitions(input: { type: "ComposerWindowPaginationPageInput" }) {
+    composerWindowPagination(input: $input) {
+      pageNumber
+      pageMaxNumber
+      items {
         id
         name
-        kind
-        yearOfPublication
+        country
+        works {
+          id
+          name
+          kind
+          yearOfPublication
+        }
       }
     }
   }
@@ -187,16 +194,36 @@ export function Main(props: {
 
 /*
   Decoding should be part of spec solution like io-ts, yup, zod, malli.
+  Every time parameters in GQL schema are changed decoding must be undated
+  manually. This is stupid.
 */
 
-const decodeStringAsEnum =
+const decodeStringAsEnumFactory =
   <T extends unknown>(enumType: GraphQLEnumType) =>
   (externalValue: string): T | undefined => {
     const validValues = enumType.getValues().map((v) => v.name);
     return validValues.includes(externalValue) ? (externalValue as T) : undefined;
   };
 
-export const decode = {
-  country: decodeStringAsEnum<Country>(spec.Country),
-  workKind: decodeStringAsEnum<WorkKind>(spec.WorkKind),
+const decodeStringAsInt = (externalValue: string): number | undefined => {
+  return parseInt(externalValue) || undefined;
 };
+
+const __decode = {
+  country: decodeStringAsEnumFactory<Country>(spec.Country),
+  workKind: decodeStringAsEnumFactory<WorkKind>(spec.WorkKind),
+};
+
+export function decodeComposerWindowPaginationPageInput(
+  externalValue: unknown
+): Partial<ComposerWindowPaginationPageInput> {
+  if (utils.isObject(externalValue)) {
+    return {
+      ...externalValue,
+      country: __decode.country(externalValue.country),
+      workKind: __decode.workKind(externalValue.workKind),
+      pageNumber: decodeStringAsInt(externalValue.pageNumber),
+    };
+  }
+  return {};
+}

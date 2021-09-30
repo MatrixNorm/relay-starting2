@@ -1,8 +1,14 @@
 type Query {
-  composers(country: Country, workKind: WorkKind): [Composer!]
+  composerWindowPagination(input: ComposerWindowPaginationPageInput): ComposerWindowPaginationPage
   composerById(composerId: ID!): Composer
   __schema: __Schema!
   __type(name: String!): __Type
+}
+
+type ComposerWindowPaginationPage {
+  pageNumber: Int!
+  pageMaxNumber: Int!
+  items: [Composer!]
 }
 
 type Composer implements Node {
@@ -43,6 +49,12 @@ enum WorkKind {
   PIANO_SONATA
   STRING_QUARTET
   SYMPHONY
+}
+
+input ComposerWindowPaginationPageInput {
+  country: Country
+  workKind: WorkKind
+  pageNumber: Int
 }
 
 """
