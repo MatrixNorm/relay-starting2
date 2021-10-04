@@ -2,16 +2,11 @@ import * as React from "react";
 const { useCallback, useContext } = React;
 import RoutingContext from "./RoutingContext";
 
-type Props = {
-  to: string;
-  children?: any;
-};
-
 /**
  * An alternative to react-router's Link component that works with
  * our custom RoutingContext.
  */
-export default function Link(props: Props) {
+export default function Link(props: { to: string; children?: any }) {
   const router = useContext(RoutingContext);
 
   // When the user clicks, change route

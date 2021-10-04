@@ -1,15 +1,15 @@
 import * as React from "react";
-import { useState } from "react";
 import graphql from "babel-plugin-relay/macro";
 import { useFragment, usePreloadedQuery } from "react-relay/hooks";
+import RoutingContext from "../routing/RoutingContext";
 import Link from "../routing/Link";
 import * as utils from "../utils";
 import * as spec from "../schema";
+import type * as typeUtils from "../typeUtils";
 import type { PreloadedQuery } from "react-relay/hooks";
 import type { GraphQLEnumType } from "graphql";
 import type {
   ComposersBrowseViewQuery as $Query,
-  ComposersBrowseViewQueryVariables as $QueryVars,
   Country,
   WorkKind,
   ComposerWindowPaginationPageInput,
@@ -19,8 +19,6 @@ import type {
   ComposersBrowseView_composers$key,
 } from "__relay__/ComposersBrowseView_composers.graphql";
 import type { PreloadedMatch } from "../routing/Router";
-
-type Composer = NonNullable<ComposersBrowseView_composers["composers"]>[number];
 
 export { $Query };
 
@@ -61,18 +59,34 @@ const composersFragment = graphql`
   }
 `;
 
-function ComposersList(props: { composers: ComposersBrowseView_composers$key }) {
-  const { composers } = useFragment(composersFragment, props.composers);
+function ComposersList(props: {
+  composers: ComposersBrowseView_composers$key;
+  onPageChange: any;
+}) {
+  const { composerWindowPagination: data } = useFragment(
+    composersFragment,
+    props.composers
+  );
   return (
     <div>
-      {composers
-        ? composers.map((composer) => (
-            <ComposerSummary composer={composer} key={composer.id} />
-          ))
-        : "Nothing to show"}
+      <div>
+        {data?.items
+          ? data.items.map((composer) => (
+              <ComposerSummary composer={composer} key={composer.id} />
+            ))
+          : "Nothing to show"}
+      </div>
+      <div>
+        <div></div>
+        <div>
+          <button onClick={props.onPageChange((data?.pageNumber || 0) + 1)}>next</button>
+        </div>
+      </div>
     </div>
   );
 }
+
+type Composer = ComposersBrowseView_composers["composerWindowPagination"];
 
 function ComposerSummary({ composer }: { composer: Composer }) {
   const { works } = composer;
@@ -102,51 +116,69 @@ export function Main(props: {
   preloadedQuery: PreloadedQuery<$Query>;
   routeData: PreloadedMatch["routeData"];
 }) {
+  const router = React.useContext(RoutingContext);
   const data = usePreloadedQuery(Query, props.preloadedQuery);
-  /*
-    __type.enumValues is typed as string array. If introspection query is
-    done correctly all these values are in fact of Country type. There is no need to
-    do decoding in runtime - more appropriate is to write single unit test.
-    And to please Typescript it's ok to do type casting.
-  */
+
+  const paginationParams = props.preloadedQuery.variables.input || {};
+
+  const [prevParams, setPrevParams] =
+    React.useState<ComposerWindowPaginationPageInput>(paginationParams);
+
+  const [draftParams, setDraftParams] =
+    React.useState<ComposerWindowPaginationPageInput>(paginationParams);
+
+  if (!utils.isEqualByValue(prevParams, paginationParams)) {
+    setPrevParams(paginationParams);
+    setDraftParams(paginationParams);
+  }
+
   const selectorDomains = {
     country: (data.country?.enumValues || []).map((v) => v.name) as Country[],
     workKind: (data.workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
   };
 
-  const [appliedSelectors, setAppliedSelectors] = useState<$QueryVars>(
-    props.preloadedQuery.variables
-  );
-  const [draftSelectors, setDraftSelectors] = useState<$QueryVars>(appliedSelectors);
-
-  if (!utils.isEqualByValue(props.preloadedQuery.variables, appliedSelectors)) {
-    setAppliedSelectors(props.preloadedQuery.variables);
-    setDraftSelectors(props.preloadedQuery.variables);
-  }
-
   function isDraftDiffers() {
-    // Would be so much better with persistent data structures.
-    return !utils.isEqualByValue(appliedSelectors, draftSelectors);
+    return !utils.isEqualByValue(paginationParams, draftParams);
   }
 
-  function handleCancel() {
+  function handleCancelDraftParams() {
     if (isDraftDiffers()) {
-      setDraftSelectors(appliedSelectors);
+      setDraftParams(paginationParams);
     }
   }
 
-  function selectorElement(name: keyof $QueryVars) {
-    // wow typing here sucks big time
-    // but it's Typescript' fault
+  function handleCommitDraftParams() {
+    let search = new URLSearchParams(
+      encodeComposerWindowPaginationPageInput(draftParams)
+    ).toString();
+    router.history.push({ pathname: props.routeData.path, search });
+  }
+
+  const onPageChange = React.useCallback(
+    (requestedPageNumber: number) => {
+      let search = new URLSearchParams(
+        encodeComposerWindowPaginationPageInput({
+          ...draftParams,
+          pageNumber: requestedPageNumber,
+        })
+      ).toString();
+      router.history.push({ pathname: props.routeData.path, search });
+    },
+    [props.routeData.path]
+  );
+
+  function selectorElement(name: "country" | "workKind") {
     if (selectorDomains[name].length > 0) {
       return (
         <select
-          value={draftSelectors[name] || ""}
+          value={draftParams[name] || ""}
           onChange={(evt) => {
-            // observe how useless is type information here
-            let decoder = decode[name];
-            let value = decoder(evt.target.value);
-            setDraftSelectors((prev) => ({ ...prev, [name]: value }));
+            let decodedValue = decodeComposerWindowPaginationPageInput({
+              [name]: evt.target.value,
+            });
+            if (decodedValue[name]) {
+              setDraftParams((prev) => ({ ...prev, [name]: decodedValue }));
+            }
           }}
           test-id={`App-${name}-selector`}
         >
@@ -170,22 +202,14 @@ export function Main(props: {
 
       {isDraftDiffers() && (
         <div>
-          <button>
-            <Link
-              to={`${props.routeData.path}?${new URLSearchParams(
-                utils.removeNullAndUndefine(draftSelectors)
-              ).toString()}`}
-            >
-              apply
-            </Link>
-          </button>
-          <button onClick={handleCancel}>cancel</button>
+          <button onClick={handleCommitDraftParams}>apply</button>
+          <button onClick={handleCancelDraftParams}>cancel</button>
         </div>
       )}
 
       <div>
         <React.Suspense fallback={"Loading..."}>
-          <ComposersList composers={data} />
+          <ComposersList composers={data} onPageChange={onPageChange} />
         </React.Suspense>
       </div>
     </div>
@@ -216,14 +240,19 @@ const __decode = {
 
 export function decodeComposerWindowPaginationPageInput(
   externalValue: unknown
-): Partial<ComposerWindowPaginationPageInput> {
+): Partial<typeUtils.Denull<ComposerWindowPaginationPageInput>> {
   if (utils.isObject(externalValue)) {
     return {
-      ...externalValue,
       country: __decode.country(externalValue.country),
       workKind: __decode.workKind(externalValue.workKind),
       pageNumber: decodeStringAsInt(externalValue.pageNumber),
     };
   }
   return {};
+}
+
+function encodeComposerWindowPaginationPageInput(
+  input: ComposerWindowPaginationPageInput
+): { [key: string]: string } {
+  return JSON.parse(JSON.stringify(utils.removeNullAndUndefine(input)));
 }
