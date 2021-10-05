@@ -7,9 +7,8 @@ import * as utils from "../utils";
 import * as spec from "../schema";
 import type * as typeUtils from "../typeUtils";
 import type { PreloadedQuery } from "react-relay/hooks";
-import type { GraphQLEnumType } from "graphql";
 import type {
-  ComposersBrowseViewQuery as $Query,
+  ComposersBrowseViewQuery,
   Country,
   WorkKind,
   ComposerWindowPaginationPageInput,
@@ -20,7 +19,7 @@ import type {
 } from "__relay__/ComposersBrowseView_composers.graphql";
 import type { PreloadedMatch } from "../routing/Router";
 
-export { $Query };
+export type $Query = ComposersBrowseViewQuery;
 
 export const Query = graphql`
   query ComposersBrowseViewQuery($input: ComposerWindowPaginationPageInput) {
@@ -86,7 +85,9 @@ function ComposersList(props: {
   );
 }
 
-type Composer = ComposersBrowseView_composers["composerWindowPagination"];
+type Composer = NonNullable<
+  NonNullable<ComposersBrowseView_composers["composerWindowPagination"]>["items"]
+>[number];
 
 function ComposerSummary({ composer }: { composer: Composer }) {
   const { works } = composer;
@@ -217,25 +218,14 @@ export function Main(props: {
 }
 
 /*
-  Decoding should be part of spec solution like io-ts, yup, zod, malli.
-  Every time parameters in GQL schema are changed decoding must be undated
-  manually. This is stupid.
+  Decoding should be part of spec solution like io-ts, yup, zod, malli
+  to eliminate debilitating manual coding.
 */
 
-const decodeStringAsEnumFactory =
-  <T extends unknown>(enumType: GraphQLEnumType) =>
-  (externalValue: string): T | undefined => {
-    const validValues = enumType.getValues().map((v) => v.name);
-    return validValues.includes(externalValue) ? (externalValue as T) : undefined;
-  };
-
-const decodeStringAsInt = (externalValue: string): number | undefined => {
-  return parseInt(externalValue) || undefined;
-};
-
 const __decode = {
-  country: decodeStringAsEnumFactory<Country>(spec.Country),
-  workKind: decodeStringAsEnumFactory<WorkKind>(spec.WorkKind),
+  country: utils.decodeStringAsEnumFactory<Country>(spec.Country),
+  workKind: utils.decodeStringAsEnumFactory<WorkKind>(spec.WorkKind),
+  pageNumber: utils.decodeStringAsInt,
 };
 
 export function decodeComposerWindowPaginationPageInput(
@@ -245,7 +235,7 @@ export function decodeComposerWindowPaginationPageInput(
     return {
       country: __decode.country(externalValue.country),
       workKind: __decode.workKind(externalValue.workKind),
-      pageNumber: decodeStringAsInt(externalValue.pageNumber),
+      pageNumber: __decode.pageNumber(externalValue.pageNumber),
     };
   }
   return {};
