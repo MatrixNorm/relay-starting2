@@ -2,7 +2,7 @@ import { addMocksToSchema, createMockStore } from "@graphql-tools/mock";
 import * as gql from "graphql";
 import * as rr from "relay-runtime";
 import schema from "./schema";
-import * as ut from "./utils";
+import * as utils from "./utils";
 
 const store = createMockStore({
   schema,
@@ -46,8 +46,7 @@ const mockedSchema = addMocksToSchema({
         return store.get("Composer", composerId);
       },
       composerWindowPagination: (_, { input }) => {
-        console.log({ input });
-        const { country, workKind, pageNumber } = input;
+        const pageNumber = input.pageNumber || 0;
         // IF gql request has variables like {} (that is
         // 'country' key is missing) then here 'country'
         // will have value of 'undefined'. But if variables
@@ -57,22 +56,21 @@ const mockedSchema = addMocksToSchema({
           "Query",
           "ROOT",
           "composerWindowPagination",
-          {
-            input,
-          }
+          utils.removeNullAndUndefine({
+            country: input.country,
+            workKind: input.workKind,
+          })
         );
-        console.log(paginationRef);
 
         const composerRefs: any = store.get(
           "ComposerWindowPaginationPage",
           paginationRef.$ref.key,
           "items"
         );
-        console.log(composerRefs);
 
-        if (input.country) {
+        if (!utils.isNil(input.country)) {
           for (let ref of composerRefs) {
-            store.set("Composer", ref.$ref.key, "country", country);
+            store.set("Composer", ref.$ref.key, "country", input.country);
           }
         }
 
@@ -86,23 +84,22 @@ const mockedSchema = addMocksToSchema({
         // }
 
         return {
-          pageNumber: pageNumber || 0,
-          pageMaxNumber: composerRefs.length - 1,
-          items: composerRefs.slice(3 * (pageNumber || 0), 3 * (pageNumber || 0) + 3),
+          pageNumber,
+          pageMaxNumber: 2,
+          items: composerRefs.slice(3 * pageNumber, 3 * (pageNumber + 1)),
         };
       },
     },
     Composer: {
       works: (composer, { kind }) => {
-        console.log({ kind });
         const workRefs: any = store.get(
           "Composer",
           composer.$ref.key,
           "works",
-          !ut.isNil(kind) ? { kind } : undefined
+          !utils.isNil(kind) ? { kind } : undefined
         );
 
-        if (!ut.isNil(kind)) {
+        if (!utils.isNil(kind)) {
           for (let ref of workRefs) {
             store.set("Work", ref.$ref.key, "kind", kind);
           }
@@ -150,7 +147,7 @@ export const createMockedRelayEnvironment = (
     variables: rr.Variables
   ): Promise<rr.GraphQLResponse> => {
     return requestSerializer.add(async function () {
-      await ut.sleepPromise(timeout);
+      await utils.sleepPromise(timeout);
       let data = gql.graphqlSync({
         schema: mockedSchema,
         source: request.text || "",

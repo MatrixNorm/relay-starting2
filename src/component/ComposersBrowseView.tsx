@@ -66,21 +66,25 @@ function ComposersList(props: {
     composersFragment,
     props.composers
   );
+  if (!data || !data.items) {
+    return <div>Oops... Cannot get data.</div>;
+  }
+  const { pageNumber, pageMaxNumber } = data;
   return (
     <div>
       <div>
-        {data?.items
-          ? data.items.map((composer) => (
-              <ComposerSummary composer={composer} key={composer.id} />
-            ))
-          : "Oops... Cannot get data."}
+        {data.items.map((composer) => (
+          <ComposerSummary composer={composer} key={composer.id} />
+        ))}
       </div>
       <div>
-        <div></div>
         <div>
-          <button onClick={() => props.onPageChange((data?.pageNumber || 0) + 1)}>
-            next
-          </button>
+          {pageNumber > 0 && (
+            <button onClick={() => props.onPageChange(pageNumber - 1)}>prev</button>
+          )}
+          {pageNumber < pageMaxNumber && (
+            <button onClick={() => props.onPageChange(pageNumber + 1)}>next</button>
+          )}
         </div>
       </div>
     </div>
@@ -133,18 +137,17 @@ export function Main(props: {
 }) {
   const router = React.useContext(RoutingContext);
   const data = usePreloadedQuery(Query, props.preloadedQuery);
-  console.log(data);
 
   const paginationParams = props.preloadedQuery.variables.input || {};
 
-  const [prevParams, setPrevParams] =
+  const [appliedParams, setAppliedParams] =
     React.useState<ComposerWindowPaginationPageInput>(paginationParams);
 
   const [draftParams, setDraftParams] =
     React.useState<ComposerWindowPaginationPageInput>(paginationParams);
 
-  if (!utils.isEqualByValue(prevParams, paginationParams)) {
-    setPrevParams(paginationParams);
+  if (!utils.isEqualByValue(appliedParams, paginationParams)) {
+    setAppliedParams(paginationParams);
     setDraftParams(paginationParams);
   }
 
@@ -177,12 +180,12 @@ export function Main(props: {
         router,
         props.routeData.path,
         encodeComposerWindowPaginationPageInput({
-          ...draftParams,
+          ...appliedParams,
           pageNumber: requestedPageNumber,
         })
       );
     },
-    [props.routeData.path]
+    [appliedParams]
   );
 
   function selectorElement(name: "country" | "workKind") {
@@ -194,7 +197,6 @@ export function Main(props: {
             let decodedValue = decodeComposerWindowPaginationPageInput({
               [name]: evt.target.value,
             });
-            console.log(decodedValue);
             if (decodedValue[name]) {
               setDraftParams((prev) => ({ ...prev, [name]: decodedValue[name] }));
             }
