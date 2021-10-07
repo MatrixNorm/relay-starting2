@@ -73,12 +73,14 @@ function ComposersList(props: {
           ? data.items.map((composer) => (
               <ComposerSummary composer={composer} key={composer.id} />
             ))
-          : "Nothing to show"}
+          : "Oops... Cannot get data."}
       </div>
       <div>
         <div></div>
         <div>
-          <button onClick={props.onPageChange((data?.pageNumber || 0) + 1)}>next</button>
+          <button onClick={() => props.onPageChange((data?.pageNumber || 0) + 1)}>
+            next
+          </button>
         </div>
       </div>
     </div>
@@ -107,10 +109,22 @@ function ComposerSummary({ composer }: { composer: Composer }) {
           ))}
         </ul>
       ) : (
-        <div>This composer is a lazy bummer</div>
+        <div>Oops... Cannot get data.</div>
       )}
     </div>
   );
+}
+
+function push(
+  router: any,
+  path: string,
+  searchParams: { [key: string]: string } | undefined
+) {
+  let params: any = { pathname: path };
+  if (searchParams) {
+    params["search"] = `?${new URLSearchParams(searchParams).toString()}`;
+  }
+  router.history.push(params);
 }
 
 export function Main(props: {
@@ -119,6 +133,7 @@ export function Main(props: {
 }) {
   const router = React.useContext(RoutingContext);
   const data = usePreloadedQuery(Query, props.preloadedQuery);
+  console.log(data);
 
   const paginationParams = props.preloadedQuery.variables.input || {};
 
@@ -149,21 +164,23 @@ export function Main(props: {
   }
 
   function handleCommitDraftParams() {
-    let search = new URLSearchParams(
+    push(
+      router,
+      props.routeData.path,
       encodeComposerWindowPaginationPageInput(draftParams)
-    ).toString();
-    router.history.push({ pathname: props.routeData.path, search });
+    );
   }
 
   const onPageChange = React.useCallback(
     (requestedPageNumber: number) => {
-      let search = new URLSearchParams(
+      push(
+        router,
+        props.routeData.path,
         encodeComposerWindowPaginationPageInput({
           ...draftParams,
           pageNumber: requestedPageNumber,
         })
-      ).toString();
-      router.history.push({ pathname: props.routeData.path, search });
+      );
     },
     [props.routeData.path]
   );
@@ -177,8 +194,9 @@ export function Main(props: {
             let decodedValue = decodeComposerWindowPaginationPageInput({
               [name]: evt.target.value,
             });
+            console.log(decodedValue);
             if (decodedValue[name]) {
-              setDraftParams((prev) => ({ ...prev, [name]: decodedValue }));
+              setDraftParams((prev) => ({ ...prev, [name]: decodedValue[name] }));
             }
           }}
           test-id={`App-${name}-selector`}

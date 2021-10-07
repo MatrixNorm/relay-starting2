@@ -7,9 +7,9 @@ import * as ut from "./utils";
 const store = createMockStore({
   schema,
   mocks: {
-    Query: () => ({
-      composers: [...new Array(2)],
-    }),
+    // Query: () => ({
+    //   composers: [...new Array(2)],
+    // }),
     Composer: () => ({
       name: () => {
         let goats = [
@@ -28,6 +28,9 @@ const store = createMockStore({
     Work: () => ({
       name: `Op. ${Math.floor(Math.random() * 100) + 1}`,
     }),
+    ComposerWindowPaginationPage: () => ({
+      items: [...new Array(9)],
+    }),
   },
 });
 
@@ -42,36 +45,51 @@ const mockedSchema = addMocksToSchema({
         }
         return store.get("Composer", composerId);
       },
-      composers: (_, { country, workKind }) => {
-        console.log({ country, workKind });
+      composerWindowPagination: (_, { input }) => {
+        console.log({ input });
+        const { country, workKind, pageNumber } = input;
         // IF gql request has variables like {} (that is
         // 'country' key is missing) then here 'country'
         // will have value of 'undefined'. But if variables
         // are like {country: undefined} then value will
         // be 'null'.
-        const composerRefs: any = store.get(
+        const paginationRef: any = store.get(
           "Query",
           "ROOT",
-          "composers",
-          !ut.isNil(country) ? { country } : undefined
+          "composerWindowPagination",
+          {
+            input,
+          }
         );
+        console.log(paginationRef);
 
-        if (!ut.isNil(country)) {
+        const composerRefs: any = store.get(
+          "ComposerWindowPaginationPage",
+          paginationRef.$ref.key,
+          "items"
+        );
+        console.log(composerRefs);
+
+        if (input.country) {
           for (let ref of composerRefs) {
             store.set("Composer", ref.$ref.key, "country", country);
           }
         }
 
-        if (!ut.isNil(workKind)) {
-          for (let ref of composerRefs) {
-            const workRefs: any = store.get("Composer", ref.$ref.key, "works");
-            for (let wRef of workRefs) {
-              store.set("Work", wRef.$ref.key, "kind", workKind);
-            }
-          }
-        }
+        // if (!ut.isNil(workKind)) {
+        //   for (let ref of composerRefs) {
+        //     const workRefs: any = store.get("Composer", ref.$ref.key, "works");
+        //     for (let wRef of workRefs) {
+        //       store.set("Work", wRef.$ref.key, "kind", workKind);
+        //     }
+        //   }
+        // }
 
-        return composerRefs;
+        return {
+          pageNumber: pageNumber || 0,
+          pageMaxNumber: composerRefs.length - 1,
+          items: composerRefs.slice(3 * (pageNumber || 0), 3 * (pageNumber || 0) + 3),
+        };
       },
     },
     Composer: {
@@ -138,6 +156,7 @@ export const createMockedRelayEnvironment = (
         source: request.text || "",
         variableValues: variables,
       });
+      console.log(data);
       return data;
     }) as Promise<rr.GraphQLResponse>;
   };
