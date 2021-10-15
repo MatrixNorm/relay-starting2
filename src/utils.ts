@@ -38,3 +38,7 @@ export const decodeStringAsEnumFactory =
 export const decodeStringAsInt = (externalValue: string): number | undefined => {
   return parseInt(externalValue) || undefined;
 };
+
+export const encodeShallow = (input: any): { [key: string]: string } => {
+  return JSON.parse(JSON.stringify(removeNullAndUndefine(input)));
+};

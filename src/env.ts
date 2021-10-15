@@ -4,6 +4,9 @@ import * as rr from "relay-runtime";
 import schema from "./schema";
 import * as utils from "./utils";
 
+const COMPOSERS_PAGINATION_PAGE_SIZE = 3;
+const COMPOSERS_PAGINATION_NUMBER_OF_PAGES = 3;
+
 const store = createMockStore({
   schema,
   mocks: {
@@ -29,7 +32,11 @@ const store = createMockStore({
       name: `Op. ${Math.floor(Math.random() * 100) + 1}`,
     }),
     ComposerWindowPaginationPage: () => ({
-      items: [...new Array(9)],
+      items: [
+        ...new Array(
+          COMPOSERS_PAGINATION_PAGE_SIZE * COMPOSERS_PAGINATION_NUMBER_OF_PAGES
+        ),
+      ],
     }),
   },
 });
@@ -47,11 +54,6 @@ const mockedSchema = addMocksToSchema({
       },
       composerWindowPagination: (_, { input }) => {
         const pageNumber = input.pageNumber || 0;
-        // IF gql request has variables like {} (that is
-        // 'country' key is missing) then here 'country'
-        // will have value of 'undefined'. But if variables
-        // are like {country: undefined} then value will
-        // be 'null'.
         const paginationRef: any = store.get(
           "Query",
           "ROOT",
@@ -74,19 +76,22 @@ const mockedSchema = addMocksToSchema({
           }
         }
 
-        // if (!ut.isNil(workKind)) {
-        //   for (let ref of composerRefs) {
-        //     const workRefs: any = store.get("Composer", ref.$ref.key, "works");
-        //     for (let wRef of workRefs) {
-        //       store.set("Work", wRef.$ref.key, "kind", workKind);
-        //     }
-        //   }
-        // }
+        if (!utils.isNil(input.workKind)) {
+          for (let ref of composerRefs) {
+            const workRefs: any = store.get("Composer", ref.$ref.key, "works");
+            for (let wRef of workRefs) {
+              store.set("Work", wRef.$ref.key, "kind", input.workKind);
+            }
+          }
+        }
 
         return {
           pageNumber,
-          pageMaxNumber: 2,
-          items: composerRefs.slice(3 * pageNumber, 3 * (pageNumber + 1)),
+          pageMaxNumber: COMPOSERS_PAGINATION_NUMBER_OF_PAGES - 1,
+          items: composerRefs.slice(
+            COMPOSERS_PAGINATION_PAGE_SIZE * pageNumber,
+            COMPOSERS_PAGINATION_PAGE_SIZE * (pageNumber + 1)
+          ),
         };
       },
     },

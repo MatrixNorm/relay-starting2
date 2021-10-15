@@ -144,3 +144,15 @@ function preloadMatches$effect(
     return { component: route.component, preloaded, routeData: matchData };
   });
 }
+
+export function pushURL(
+  router: Router,
+  path: string,
+  searchParams: { [key: string]: string } | undefined
+) {
+  let params: any = { pathname: path };
+  if (searchParams) {
+    params["search"] = `?${new URLSearchParams(searchParams).toString()}`;
+  }
+  router.history.push(params);
+}

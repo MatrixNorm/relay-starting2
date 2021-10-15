@@ -3,6 +3,7 @@ import graphql from "babel-plugin-relay/macro";
 import { useFragment, usePreloadedQuery } from "react-relay/hooks";
 import RoutingContext from "../routing/RoutingContext";
 import Link from "../routing/Link";
+import { pushURL } from "../routing/Router";
 import * as utils from "../utils";
 import * as spec from "../schema";
 import type * as typeUtils from "../typeUtils";
@@ -21,21 +22,9 @@ import type { PreloadedMatch } from "../routing/Router";
 
 export type $Query = ComposersBrowseViewQuery;
 
-export const Query = graphql`
-  query ComposersBrowseViewQuery($input: ComposerWindowPaginationPageInput) {
-    country: __type(name: "Country") {
-      enumValues {
-        name
-      }
-    }
-    workKind: __type(name: "WorkKind") {
-      enumValues {
-        name
-      }
-    }
-    ...ComposersBrowseView_composers @arguments(input: $input)
-  }
-`;
+//////////////////////
+// === FRAGMENT === //
+//////////////////////
 
 const composersFragment = graphql`
   fragment ComposersBrowseView_composers on Query
@@ -60,7 +49,7 @@ const composersFragment = graphql`
 
 function ComposersList(props: {
   composers: ComposersBrowseView_composers$key;
-  onPageChange: any;
+  onPageChange: (pageNumber: number) => void;
 }) {
   const { composerWindowPagination: data } = useFragment(
     composersFragment,
@@ -119,17 +108,25 @@ function ComposerSummary({ composer }: { composer: Composer }) {
   );
 }
 
-function push(
-  router: any,
-  path: string,
-  searchParams: { [key: string]: string } | undefined
-) {
-  let params: any = { pathname: path };
-  if (searchParams) {
-    params["search"] = `?${new URLSearchParams(searchParams).toString()}`;
+//////////////////////
+// === FRAGMENT === //
+//////////////////////
+
+export const Query = graphql`
+  query ComposersBrowseViewQuery($input: ComposerWindowPaginationPageInput) {
+    country: __type(name: "Country") {
+      enumValues {
+        name
+      }
+    }
+    workKind: __type(name: "WorkKind") {
+      enumValues {
+        name
+      }
+    }
+    ...ComposersBrowseView_composers @arguments(input: $input)
   }
-  router.history.push(params);
-}
+`;
 
 export function Main(props: {
   preloadedQuery: PreloadedQuery<$Query>;
@@ -140,6 +137,10 @@ export function Main(props: {
 
   const paginationParams = props.preloadedQuery.variables.input || {};
 
+  /*
+    Need this to keep track of paginationParams change between re-renders.
+    If they do change then draftParams are re-setted,
+  */
   const [appliedParams, setAppliedParams] =
     React.useState<ComposerWindowPaginationPageInput>(paginationParams);
 
@@ -167,7 +168,7 @@ export function Main(props: {
   }
 
   function handleCommitDraftParams() {
-    push(
+    pushURL(
       router,
       props.routeData.path,
       encodeComposerWindowPaginationPageInput(draftParams)
@@ -176,7 +177,7 @@ export function Main(props: {
 
   const onPageChange = React.useCallback(
     (requestedPageNumber: number) => {
-      push(
+      pushURL(
         router,
         props.routeData.path,
         encodeComposerWindowPaginationPageInput({
@@ -237,32 +238,50 @@ export function Main(props: {
   );
 }
 
-/*
+/* DECODE / ENCODE
+
   Decoding should be part of spec solution like io-ts, yup, zod, malli
   to eliminate debilitating manual coding.
+
+  (def ComposerWindowPaginationPageInput 
+    [:map
+      [:country Country]
+      [:workKind WorkKind]
+      [:pageNumber Integer]
+    ])
+
+  (m/decode 
+    ComposerWindowPaginationPageInput
+    {:country "Russia"
+     :workKind "PEANO_CONCERTO"
+     :pageNumber "1"}
+    mt/json-transformer)
+  ; {:country "Russia" :pageNumber 1}
 */
 
-const __decode = {
-  country: utils.decodeStringAsEnumFactory<Country>(spec.Country),
-  workKind: utils.decodeStringAsEnumFactory<WorkKind>(spec.WorkKind),
-  pageNumber: utils.decodeStringAsInt,
-};
+export const decodeComposerWindowPaginationPageInput = (() => {
+  const __decode = {
+    country: utils.decodeStringAsEnumFactory<Country>(spec.Country),
+    workKind: utils.decodeStringAsEnumFactory<WorkKind>(spec.WorkKind),
+    pageNumber: utils.decodeStringAsInt,
+  };
 
-export function decodeComposerWindowPaginationPageInput(
-  externalValue: unknown
-): Partial<typeUtils.Denull<ComposerWindowPaginationPageInput>> {
-  if (utils.isObject(externalValue)) {
-    return {
-      country: __decode.country(externalValue.country),
-      workKind: __decode.workKind(externalValue.workKind),
-      pageNumber: __decode.pageNumber(externalValue.pageNumber),
-    };
-  }
-  return {};
-}
+  return function (
+    externalValue: unknown
+  ): Partial<typeUtils.Denull<ComposerWindowPaginationPageInput>> {
+    if (utils.isObject(externalValue)) {
+      return {
+        country: __decode.country(externalValue.country),
+        workKind: __decode.workKind(externalValue.workKind),
+        pageNumber: __decode.pageNumber(externalValue.pageNumber),
+      };
+    }
+    return {};
+  };
+})();
 
 function encodeComposerWindowPaginationPageInput(
   input: ComposerWindowPaginationPageInput
-): { [key: string]: string } {
-  return JSON.parse(JSON.stringify(utils.removeNullAndUndefine(input)));
+) {
+  return utils.encodeShallow(input);
 }
