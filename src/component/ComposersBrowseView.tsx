@@ -137,41 +137,45 @@ export function Main(props: {
 
   const paginationParams = props.preloadedQuery.variables.input || {};
 
+  const propsFilters = {
+    country: paginationParams.country,
+    workKind: paginationParams.workKind,
+  };
   /*
-    Need this to keep track of paginationParams change between re-renders.
-    If they do change then draftParams are re-setted,
+    Need this to keep track of filters from paginationParams change between re-renders.
+    If they do change then draftFilters are re-setted,
   */
-  const [appliedParams, setAppliedParams] =
-    React.useState<ComposerWindowPaginationPageInput>(paginationParams);
+  const [appliedFilters, setAppliedFilters] = React.useState(propsFilters);
+  const [draftFilters, setDraftFilters] = React.useState(propsFilters);
 
-  const [draftParams, setDraftParams] =
-    React.useState<ComposerWindowPaginationPageInput>(paginationParams);
-
-  if (!utils.isEqualByValue(appliedParams, paginationParams)) {
-    setAppliedParams(paginationParams);
-    setDraftParams(paginationParams);
+  if (!utils.isEqualByValue(appliedFilters, propsFilters)) {
+    setAppliedFilters(propsFilters);
+    setDraftFilters(propsFilters);
   }
 
-  const selectorDomains = {
+  const filterDomains = {
     country: (data.country?.enumValues || []).map((v) => v.name) as Country[],
     workKind: (data.workKind?.enumValues || []).map((v) => v.name) as WorkKind[],
   };
 
-  function isDraftDiffers() {
-    return !utils.isEqualByValue(paginationParams, draftParams);
+  function isDraftDifferent() {
+    return !utils.isEqualByValue(propsFilters, draftFilters);
   }
 
-  function handleCancelDraftParams() {
-    if (isDraftDiffers()) {
-      setDraftParams(paginationParams);
+  function handleCancelDraftFilters() {
+    if (isDraftDifferent()) {
+      setDraftFilters(propsFilters);
     }
   }
 
-  function handleCommitDraftParams() {
+  function handleCommitDraftFilters() {
     pushURL(
       router,
       props.routeData.path,
-      encodeComposerWindowPaginationPageInput(draftParams)
+      encodeComposerWindowPaginationPageInput({
+        ...draftFilters,
+        pageNumber: undefined,
+      })
     );
   }
 
@@ -181,31 +185,29 @@ export function Main(props: {
         router,
         props.routeData.path,
         encodeComposerWindowPaginationPageInput({
-          ...appliedParams,
+          ...appliedFilters,
           pageNumber: requestedPageNumber,
         })
       );
     },
-    [appliedParams]
+    [appliedFilters]
   );
 
-  function selectorElement(name: "country" | "workKind") {
-    if (selectorDomains[name].length > 0) {
+  function filterElement(name: "country" | "workKind") {
+    if (filterDomains[name].length > 0) {
       return (
         <select
-          value={draftParams[name] || ""}
+          value={draftFilters[name] || ""}
           onChange={(evt) => {
             let decodedValue = decodeComposerWindowPaginationPageInput({
               [name]: evt.target.value,
             });
-            if (decodedValue[name]) {
-              setDraftParams((prev) => ({ ...prev, [name]: decodedValue[name] }));
-            }
+            setDraftFilters((prev) => ({ ...prev, [name]: decodedValue[name] }));
           }}
           test-id={`App-${name}-selector`}
         >
           <option value=""></option>
-          {selectorDomains[name].map((name, j) => (
+          {filterDomains[name].map((name, j) => (
             <option value={name} key={j}>
               {name}
             </option>
@@ -219,13 +221,13 @@ export function Main(props: {
 
   return (
     <div>
-      {selectorElement("country")}
-      {selectorElement("workKind")}
+      {filterElement("country")}
+      {filterElement("workKind")}
 
-      {isDraftDiffers() && (
+      {isDraftDifferent() && (
         <div>
-          <button onClick={handleCommitDraftParams}>apply</button>
-          <button onClick={handleCancelDraftParams}>cancel</button>
+          <button onClick={handleCommitDraftFilters}>apply</button>
+          <button onClick={handleCancelDraftFilters}>cancel</button>
         </div>
       )}
 
